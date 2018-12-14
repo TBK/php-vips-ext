@@ -1,0 +1,192 @@
+version: '{branch}.{build}'
+
+branches:
+  only:
+  - master
+
+image: Visual Studio 2017
+
+clone_folder: c:\projects\php-vips-ext
+
+environment:
+  PHP_SDK_BINARY_TOOLS_VER: php-sdk-2.1.10 # https://github.com/Microsoft/php-sdk-binary-tools/releases
+  LIBVIPS_VER: 8.8.0 # https://github.com/libvips/libvips/releases
+  CXX_FLAGS: "/permissive- /std:c++latest /utf-8"
+
+  matrix:
+    # PHP 7.2
+    - ARCH: x86
+      INT_SIZE: 32
+      PHP_VER: 7.2
+      VC_VER: vc15
+      ZTS: --enable-zts
+      VIPS: --with-vips
+    - ARCH: x64
+      INT_SIZE: 64
+      PHP_VER: 7.2
+      VC_VER: vc15
+      ZTS: --disable-zts
+      VIPS: --with-vips
+    ## Shared lib
+    - ARCH: x86
+      INT_SIZE: 32
+      PHP_VER: 7.2
+      VC_VER: vc15
+      ZTS: --enable-zts
+      VIPS: --with-vips=shared
+    - ARCH: x64
+      INT_SIZE: 64
+      PHP_VER: 7.2
+      VC_VER: vc15
+      ZTS: --enable-zts
+      VIPS: --with-vips=shared
+    - ARCH: x86
+      INT_SIZE: 32
+      PHP_VER: 7.2
+      VC_VER: vc15
+      ZTS: --disable-zts
+      VIPS: --with-vips=shared
+    - ARCH: x64
+      INT_SIZE: 64
+      PHP_VER: 7.2
+      VC_VER: vc15
+      ZTS: --disable-zts
+      VIPS: --with-vips=shared
+    # PHP 7.3
+    - ARCH: x86
+      INT_SIZE: 32
+      PHP_VER: 7.3
+      VC_VER: vc15
+      ZTS: --enable-zts
+      VIPS: --with-vips
+    - ARCH: x64
+      INT_SIZE: 64
+      PHP_VER: 7.3
+      VC_VER: vc15
+      ZTS: --disable-zts
+      VIPS: --with-vips
+    ## Shared lib
+    - ARCH: x86
+      INT_SIZE: 32
+      PHP_VER: 7.3
+      VC_VER: vc15
+      ZTS: --enable-zts
+      VIPS: --with-vips=shared
+    - ARCH: x64
+      INT_SIZE: 64
+      PHP_VER: 7.3
+      VC_VER: vc15
+      ZTS: --enable-zts
+      VIPS: --with-vips=shared
+    - ARCH: x86
+      INT_SIZE: 32
+      PHP_VER: 7.3
+      VC_VER: vc15
+      ZTS: --disable-zts
+      VIPS: --with-vips=shared
+    - ARCH: x64
+      INT_SIZE: 64
+      PHP_VER: 7.3
+      VC_VER: vc15
+      ZTS: --disable-zts
+      VIPS: --with-vips=shared
+    # PHP 7.4
+    - ARCH: x86
+      INT_SIZE: 32
+      PHP_VER: 7.4
+      VC_VER: vc15
+      ZTS: --enable-zts
+      VIPS: --with-vips
+    - ARCH: x64
+      INT_SIZE: 64
+      PHP_VER: 7.4
+      VC_VER: vc15
+      ZTS: --disable-zts
+      VIPS: --with-vips
+    ## Shared lib
+    - ARCH: x86
+      INT_SIZE: 32
+      PHP_VER: 7.4
+      VC_VER: vc15
+      ZTS: --enable-zts
+      VIPS: --with-vips=shared
+    - ARCH: x64
+      INT_SIZE: 64
+      PHP_VER: 7.4
+      VC_VER: vc15
+      ZTS: --enable-zts
+      VIPS: --with-vips=shared
+    - ARCH: x86
+      INT_SIZE: 32
+      PHP_VER: 7.4
+      VC_VER: vc15
+      ZTS: --disable-zts
+      VIPS: --with-vips=shared
+    - ARCH: x64
+      INT_SIZE: 64
+      PHP_VER: 7.4
+      VC_VER: vc15
+      ZTS: --disable-zts
+      VIPS: --with-vips=shared
+
+install:
+- cmd: cinst wget
+
+build_script:
+- cmd: >-
+    "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" %ARCH%
+
+    wget https://github.com/Microsoft/php-sdk-binary-tools/archive/%PHP_SDK_BINARY_TOOLS_VER%.zip --no-check-certificate -q -O php-sdk-binary-tools-%PHP_SDK_BINARY_TOOLS_VER%.zip
+
+    7z x -y php-sdk-binary-tools-%PHP_SDK_BINARY_TOOLS_VER%.zip -oC:\projects
+
+    move /y C:\projects\php-sdk-binary-tools-%PHP_SDK_BINARY_TOOLS_VER% C:\projects\php-sdk
+
+    C:\projects\php-sdk\bin\phpsdk_setvars.bat
+
+    git clone https://github.com/php/php-src C:\projects\php-src -b PHP-%PHP_VER% --depth=1
+
+    mkdir C:\projects\php-src\ext\vips
+
+    xcopy C:\projects\php-vips-ext C:\projects\php-src\ext\vips /s /e /y /q
+
+    phpsdk_deps -u -t %VC_VER% -b %PHP_VER% -a %ARCH% -f -d C:\projects\php-src\deps
+
+    wget https://github.com/libvips/libvips/releases/download/v%LIBVIPS_VER%/vips-dev-w64-all-%LIBVIPS_VER%.zip --no-check-certificate -q -O vips-dev-w64-all-%LIBVIPS_VER%.zip
+
+    7z x -y vips-dev-w64-all-%LIBVIPS_VER%.zip -oC:\projects
+
+    robocopy C:\projects\vips-dev-%LIBVIPS_VER:~0,-2% C:\projects\php-src\deps /e /xc /xn /xo /nfl /ndl /njh /njs /nc /ns /np || exit 0
+
+    copy C:\projects\php-src\deps\lib\glib-2.0\include\glibconfig.h C:\projects\php-src\deps\include\glib-2.0\
+
+    cd C:\projects\php-src
+
+    buildconf.bat
+
+    cscript /nologo configure.js --disable-all --enable-cli %ZTS% %VIPS% --with-prefix=C:\projects\php-vips-ext\bin --with-php-build=deps
+
+    nmake
+
+    nmake install
+
+    cd C:\projects\php-vips-ext\bin
+
+    echo [PHP] > php.ini
+
+    echo extension_dir = "ext" >> php.ini
+
+    echo extension=php_vips.dll >> php.ini
+
+    set TEST_PHP_EXECUTABLE=%cd%\php.exe
+
+    php -v
+
+    php -m
+
+test_script:
+- cmd: php.exe /projects/php-src/run-tests.php /projects/php-src/ext/vips -q --show-diff
+artifacts:
+  - path: bin
+    name: master
+    type: zip
