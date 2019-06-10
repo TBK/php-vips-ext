@@ -1,9 +1,16 @@
 // $Id$
 // vim:ft=javascript
 
-ARG_WITH("vips", "for vips support", "no");
+ARG_WITH("vips", "VIPS support", "no");
 
 if (PHP_VIPS != "no") {
-  EXTENSION("vips", "vips.c", PHP_VIPS_SHARED, "/DZEND_ENABLE_STATIC_TSRMLS_CACHE=1");
+	if (CHECK_HEADER_ADD_INCLUDE("vips.h", "CFLAGS_VIPS", PHP_VIPS+ ";" + PHP_PHP_BUILD + "\\include\\vips") &&
+		CHECK_HEADER_ADD_INCLUDE("glib.h", "CFLAGS_VIPS", PHP_VIPS+ ";" + PHP_PHP_BUILD + "\\include\\glib-2.0") &&
+		CHECK_LIB("libvips.lib", "vips", PHP_VIPS) && CHECK_LIB("glib-2.0.lib", "vips", PHP_VIPS) && CHECK_LIB("gobject-2.0.lib", "vips", PHP_VIPS) ) {
+		ADD_FLAG("CFLAGS_VIPS", "/D NDEBUG /D _WINDOWS /D WIN32 /D _VISUALC_ /D NeedFunctionPrototypes /D _DLL");
+		EXTENSION("vips", "vips.c", PHP_VIPS_SHARED, "/DZEND_ENABLE_STATIC_TSRMLS_CACHE=1");
+		AC_DEFINE('HAVE_VIPS', 1, 'Have VIPS library');
+	} else {
+		WARNING("vips not enabled; libraries and headers not found");
+	}
 }
-
